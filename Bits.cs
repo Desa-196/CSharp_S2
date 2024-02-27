@@ -21,6 +21,8 @@ namespace sem2
             return this[index];
         }
 
+        public int Count { get { return size; } }
+
         public void SetBits(int index, bool value)
         {
             this[index]=value;
@@ -30,46 +32,47 @@ namespace sem2
         public Bits(long value)
         {
             this.Value = value;
-            size = sizeof(long);
+            //Умножаем на 8 так как sizeof возвращает размер в байтах
+            size = sizeof(long)*8;
         }
 
         
 
-        public static explicit operator long(Bits b) => (long)b.Value;
+        //Можно в обе стороны приводить не явно так как ничего не теряем
+        public static implicit operator long(Bits b) => (long)b.Value;
         public static implicit operator Bits(long b) => new Bits(b);
-        //Реализуйте операторы неявного приведения из long,int,byt в Bits.
+        
+        
+        //Реализуйте операторы неявного приведения из long,int,byte в Bits.
+
+        //А вот тут при приведении из Bits в int теряем 32 бита, может получиться совсем другое число, нужно обязательно 
+        //явное приведение, чтобы конечный пользователь нашего класса понимал что делает.
         public static explicit operator int(Bits b) => (int)b.Value;
         public static implicit operator Bits(int b) => new Bits(b);
 
+        //Таже история с байт, из long в byte теряем последние 64 - 8 = 56 байт, можно облажаться, нужно обязательно явное приведение.
         public static explicit operator byte(Bits b) => (byte)b.Value;
         public static implicit operator Bits(byte b) => new Bits(b);
 
+        
         public bool this[int index]
         {
             get
             {
-                if (index > size || index < 0) return false;
-                return ((Value >> index) & 1) == 1;
+                if (index > size || index < 0) throw new IndexOutOfRangeException();
+                return ((Value >> index) & 1L) == 1;
             }
 
             set
             {
-                if (index > size || index < 0) return;
-                if (value == true)
-                    Value = (byte)
-                    (Value | (1 << index));
+                if (index > size || index < 0) throw new IndexOutOfRangeException();
+                //Тут обязательно указывать 1L, так как по умолчанию литерал 1 будет 32-х битным и при смещении, если index больше 31 еденичный байт перескочит.
+                if (value == true) Value = (long)(Value | (1L << index));
                 else
                 {
-                    var mask = (long)(1 << index);
+                    var mask = (long)(1L << index);
                     mask = ~mask;
                     Value &= (long)(Value & mask);
-                    /*
-                    var mask = (long)
-                        (1 << index);
-                    mask = (long)(0xffffffffffffffff ^ mask);
-                    Value &=(long)
-                        (Value & mask);
-                    */
                 }
             }
         }
